@@ -7,9 +7,8 @@ def read_CSV_file(filename):
 
 
 def main():
-    # Read in the dataset to a pandas dataframe ,dtype={"Instance": int,"Crime Level in the City of Employement": int, "Year of Record": int,"Housing Situation": int,"Work Experience in Current Job [years]": int}
+    # Read in the dataset to a pandas dataframe 
     dataset=read_CSV_file("tcd-ml-1920-group-income-train.csv")
-    split_dataset = dataset.sample(frac=0.50,random_state=0)
 
     print("here!")
     # Use pandas profiling to view a gui based plot of the preprocessed data
