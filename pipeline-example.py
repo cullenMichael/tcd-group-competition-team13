@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from catboost import CatBoostRegressor
+from xgboost import XGBRegressor
 from category_encoders import *
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
@@ -14,16 +15,17 @@ from sklearn.preprocessing import (FunctionTransformer, MinMaxScaler,
 
 def imputation(train):
     train['Work Experience in Current Job [years]'].replace('#NUM!', np.nan, inplace= True)
+    train['Housing Situation'].replace(0, np.nan, inplace= True)
+    train['Housing Situation'].replace('nA', np.nan, inplace= True)
 
     train.pop('Instance')
-    train.pop('Yearly Income in addition to Salary (e.g. Rental Income)')
 
     ord_si_step = ('si', SimpleImputer(strategy='constant',
                                        fill_value='MISSING'))
     ord_oe_step = ('oe', OrdinalEncoder())
     ord_steps = [ord_si_step, ord_oe_step]
     ord_pipe = Pipeline(ord_steps)
-    ord_cols = ['University Degree', 'Satisfation with employer']
+    ord_cols = ['Satisfation with employer']#,'University Degree' 'Housing Situation']
 
     cat_si_step = ('si', SimpleImputer(strategy='constant',
                                        fill_value='MISSING'))
@@ -53,15 +55,36 @@ def Scaler(X_train):
     scaler.fit(X_train)
     return scaler.transform(X_train)
 
+def changeSizeOfCity(dataset):
+    #Possibly refine number for this
+    dataset['Small City'] = dataset['Size of City'] < 3000;
+    #dataset.pop('Size of City')
+    return dataset
+
+def processAdditionToSalary(dataset):
+    #Get rid of "EUR" and change to float
+    dataset['Yearly Income in addition to Salary (e.g. Rental Income)'] = dataset['Yearly Income in addition to Salary (e.g. Rental Income)'].map(lambda x: x.rstrip(' EUR'))
+    dataset['Yearly Income in addition to Salary (e.g. Rental Income)'].astype('float')
+    return dataset
+#Might scrap this - no improvement in MAE
+def degree(dataset):
+    #dataset['Has Degree'] = dataset['University Degree'].str.contains(pat = 'Bachelor|PhD|Master')
+    #dataset.pop('University Degree')
+    return dataset
 
 def main():
     # Loading in training dataset using pandas
-    dataset = pd.read_csv(
-        'tcd-ml-1920-group-income-train.csv')
+    dataset = pd.read_csv('tcd-ml-1920-group-income-train.csv')
 
     # Split dataset into target(y) and predictor variables(train)
     train = dataset
+    #Put Income on Log Scale
+    train['Total Yearly Income [EUR]'] = train['Total Yearly Income [EUR]'].apply(np.log)
     y = train.pop('Total Yearly Income [EUR]').values
+
+    train = changeSizeOfCity(train)
+    train = processAdditionToSalary(train)
+    train = degree(train)
     ct = imputation(train)
     regressor = CatBoostRegressor()
 
@@ -74,7 +97,7 @@ def main():
     ml_pipe.fit(X_train, y_train)
 
     y_pred = ml_pipe.predict(X_test)
-    print('MAE is: {}'.format(mean_absolute_error(y_test, y_pred)))
+    print('MAE is: {}'.format(mean_absolute_error(np.exp(y_test), np.exp(y_pred))))
 
     test_dataset = pd.read_csv(
         'tcd-ml-1920-group-income-test.csv')
@@ -82,7 +105,9 @@ def main():
     # Split into target and predictor variables
     predict_X = test_dataset
     predict_y = predict_X.pop('Total Yearly Income [EUR]').values
-    predict_X.pop('Yearly Income in addition to Salary (e.g. Rental Income)')
+    predict_X = changeSizeOfCity(predict_X)
+    predict_X = processAdditionToSalary(predict_X)
+    predict_X = degree(predict_X)
     predict_X.pop('Instance')
 
     predict_X['Work Experience in Current Job [years]'].replace('#NUM!', np.nan, inplace= True)
@@ -91,7 +116,7 @@ def main():
     pred2 = ml_pipe.predict(predict_X)
     print(pred2)
     # Write to file
-    test = {'Total Yearly Income [EUR]': pred2}
+    test = {'Total Yearly Income [EUR]': np.exp(pred2)}
     print (test)
     df_out = pd.DataFrame(test, columns=['Total Yearly Income [EUR]'])
     df_out.to_csv("tcd-ml-1920-group-income-submission.csv")
