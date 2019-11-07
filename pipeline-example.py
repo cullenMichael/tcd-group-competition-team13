@@ -11,12 +11,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import (FunctionTransformer, MinMaxScaler,
                                    OrdinalEncoder, StandardScaler)
+from sklearn.utils import shuffle
 
 
 def imputation(train):
     train['Work Experience in Current Job [years]'].replace('#NUM!', np.nan, inplace= True)
-    train['Housing Situation'].replace(0, np.nan, inplace= True)
-    train['Housing Situation'].replace('nA', np.nan, inplace= True)
+    # train['Housing Situation'].replace(0, np.nan, inplace= True)
+    # train['Housing Situation'].replace('nA', np.nan, inplace= True)
 
     train.pop('Instance')
 
@@ -72,21 +73,52 @@ def degree(dataset):
     #dataset.pop('University Degree')
     return dataset
 
+def HousingSituation(dataset,isTestData):
+
+        # replace 0 and nA with common aribale "Unknown"
+        dataset["Housing Situation"]= dataset["Housing Situation"].replace(0, "Unknown")
+        dataset["Housing Situation"]= dataset["Housing Situation"].replace("0", "Unknown")
+        dataset["Housing Situation"]= dataset["Housing Situation"].replace("nA", "Unknown")
+
+        #if training data then drop columns otherwise leave them in
+        if(isTestData!=True):
+            for (i, row) in dataset.iterrows():
+                if row["Total Yearly Income [EUR]"] > 400000:
+                    if row["Housing Situation"] in ("Castle", "Unknown", "Large House"):
+                        dataset = dataset.drop([dataset.index[i]])
+
+        #Shuffle dataset to ensure forward propagation
+        dataset=shuffle(dataset)
+        #Foward fill the the data
+        dataset=dataset.replace({'Housing Situation': {"Unknown": np.nan}}).ffill()
+        # resort the data to original ordering
+        dataset=dataset.sort_values(by=['Instance'])
+
+        return dataset
+
+
+
 def main():
     # Loading in training dataset using pandas
     dataset = pd.read_csv('tcd-ml-1920-group-income-train.csv')
 
     # Split dataset into target(y) and predictor variables(train)
     train = dataset
+
+    # Fileter housing data
+    train = HousingSituation(train,False)
+
     #Put Income on Log Scale
-    train['Total Yearly Income [EUR]'] = train['Total Yearly Income [EUR]'].apply(np.log)
-    y = train.pop('Total Yearly Income [EUR]').values
+    train["Total Yearly Income [EUR]"] = train["Total Yearly Income [EUR]"].apply(np.log)
+    y = train.pop("Total Yearly Income [EUR]").values
+
 
     train = changeSizeOfCity(train)
     train = processAdditionToSalary(train)
     train = degree(train)
     ct = imputation(train)
     regressor = CatBoostRegressor()
+
 
     X_train, X_test, y_train, y_test = train_test_split(
         train, y, test_size=0.2)
@@ -102,21 +134,23 @@ def main():
     test_dataset = pd.read_csv(
         'tcd-ml-1920-group-income-test.csv')
 
-    # Split into target and predictor variables
+    #Split into target and predictor variables
     predict_X = test_dataset
-    predict_y = predict_X.pop('Total Yearly Income [EUR]').values
+    predict_X = HousingSituation(predict_X,True)
+    predict_X = predict_X.drop("Instance", axis='columns')
+    predict_y = predict_X.pop("Total Yearly Income [EUR]").values
     predict_X = changeSizeOfCity(predict_X)
     predict_X = processAdditionToSalary(predict_X)
     predict_X = degree(predict_X)
-    predict_X.pop('Instance')
 
-    predict_X['Work Experience in Current Job [years]'].replace('#NUM!', np.nan, inplace= True)
+
+    predict_X['Work Experience in Current Job [years]'].replace('#NUM!', np.nan, inplace = True)
 
     # Predict using submission data
     pred2 = ml_pipe.predict(predict_X)
     print(pred2)
     # Write to file
-    test = {'Total Yearly Income [EUR]': np.exp(pred2)}
+    test = {"Total Yearly Income [EUR]": np.exp(pred2)}
     print (test)
     df_out = pd.DataFrame(test, columns=['Total Yearly Income [EUR]'])
     df_out.to_csv("tcd-ml-1920-group-income-submission.csv")
