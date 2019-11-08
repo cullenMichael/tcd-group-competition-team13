@@ -85,7 +85,7 @@ def HousingSituation(dataset,isTestData):
             for (i, row) in dataset.iterrows():
                 if row["Total Yearly Income [EUR]"] > 400000:
                     if row["Housing Situation"] in ("Castle", "Unknown", "Large House"):
-                        dataset = dataset.drop([dataset.index[i]])
+                        dataset.drop(i,axis=0)
 
         #Shuffle dataset to ensure forward propagation
         dataset=shuffle(dataset)
@@ -93,6 +93,31 @@ def HousingSituation(dataset,isTestData):
         dataset=dataset.replace({'Housing Situation': {"Unknown": np.nan}}).ffill()
         # resort the data to original ordering
         dataset=dataset.sort_values(by=['Instance'])
+
+        return dataset
+
+def genderCleaning(dataset,isTestData):
+
+        # replace 0 and nA with common aribale "Unknown"
+        dataset["Gender"]= dataset["Gender"].replace("f", "female")
+        dataset["Gender"]= dataset["Gender"].replace("0", "unknown")
+        dataset["Gender"]= dataset["Gender"].replace(0, "unknown")
+        dataset["Gender"]= dataset["Gender"].replace(np.NaN, "unknown")
+
+
+        #if training data then drop columns otherwise leave them in
+        if(isTestData!=True):
+            for (i, row) in dataset.iterrows():
+                if row["Gender"] == "unknown":
+                    if row["Total Yearly Income [EUR]"] > 1500000:
+                        dataset = dataset.drop([dataset.index[i]])
+
+        #Shuffle dataset to ensure forward propagation
+        dataset=shuffle(dataset)
+        #Foward fill the the data
+        dataset=dataset.replace({"Gender": {"unknown": np.nan}}).ffill()
+        # resort the data to original ordering
+        dataset=dataset.sort_values(by=["Instance"])
 
         return dataset
 
@@ -106,6 +131,7 @@ def main():
     train = dataset
 
     # Fileter housing data
+    train = genderCleaning(train,False)
     train = HousingSituation(train,False)
 
     #Put Income on Log Scale
