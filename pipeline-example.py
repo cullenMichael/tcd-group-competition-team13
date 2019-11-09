@@ -33,7 +33,7 @@ def imputation(train):
     cat_ohe_step = ('te', TargetEncoder())
     cat_steps = [cat_si_step, cat_ohe_step]
     cat_pipe = Pipeline(cat_steps)
-    cat_cols = ['Gender', 'Country', 'Profession','Hair Color', 'Housing Situation']
+    cat_cols = ['Gender', 'Country', 'Profession', 'Housing Situation'] # 'Hair Color'
 
     num_cols = ['Year of Record', 'Age', 'Body Height [cm]', 'Crime Level in the City of Employement', 'Work Experience in Current Job [years]']
     num_si_step = ('si', SimpleImputer(strategy='median'))
@@ -67,9 +67,10 @@ def processAdditionToSalary(dataset):
     dataset['Yearly Income in addition to Salary (e.g. Rental Income)'] = dataset['Yearly Income in addition to Salary (e.g. Rental Income)'].map(lambda x: x.rstrip(' EUR'))
     dataset['Yearly Income in addition to Salary (e.g. Rental Income)'].astype('float')
     return dataset
+
 #Might scrap this - no improvement in MAE
 def degree(dataset):
-    #dataset['Has Degree'] = dataset['University Degree'].str.contains(pat = 'Bachelor|PhD|Master')
+    dataset['Has Degree'] = dataset['University Degree'].str.contains(pat = 'Bachelor|PhD|Master')
     #dataset.pop('University Degree')
     return dataset
 
@@ -122,6 +123,14 @@ def genderCleaning(dataset,isTestData):
         return dataset
 
 
+#No Missing values in Body Height so no need for Backward propagation
+def bodyHeight(dataset):
+        std = dataset['Body Height [cm]'].std(axis = 0)
+        mean = dataset['Body Height [cm]'].mean()
+        dataset['1StdBH'] = ((dataset['Body Height [cm]'] >= (mean - std)) & (dataset['Body Height [cm]'] <= (mean + std)))
+        dataset['Outside 1 Std'] = ((dataset['Body Height [cm]'] <= (mean - std)) | (dataset['Body Height [cm]'] >= (mean + std)))
+        #dataset.pop('Body Height [cm]')
+        return dataset
 
 def main():
     # Loading in training dataset using pandas
@@ -138,7 +147,9 @@ def main():
     train["Total Yearly Income [EUR]"] = train["Total Yearly Income [EUR]"].apply(np.log)
     y = train.pop("Total Yearly Income [EUR]").values
 
-
+    train.pop('Hair Color')
+    train.pop('Wears Glasses')
+    train = bodyHeight(train)
     train = changeSizeOfCity(train)
     train = processAdditionToSalary(train)
     train = degree(train)
@@ -162,9 +173,13 @@ def main():
 
     #Split into target and predictor variables
     predict_X = test_dataset
+    predict_X = genderCleaning(predict_X, True)
     predict_X = HousingSituation(predict_X,True)
     predict_X = predict_X.drop("Instance", axis='columns')
     predict_y = predict_X.pop("Total Yearly Income [EUR]").values
+    predict_X.pop('Hair Color')
+    predict_X.pop('Wears Glasses')
+    predict_X = bodyHeight(predict_X)
     predict_X = changeSizeOfCity(predict_X)
     predict_X = processAdditionToSalary(predict_X)
     predict_X = degree(predict_X)
