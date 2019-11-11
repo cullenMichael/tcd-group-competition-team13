@@ -4,15 +4,16 @@ import pandas as pd
 from catboost import CatBoostRegressor
 from category_encoders import *
 from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import (FunctionTransformer, MinMaxScaler,
-                                   OrdinalEncoder, StandardScaler, OneHotEncoder)
+                                   OneHotEncoder, OrdinalEncoder,
+                                   StandardScaler)
 from sklearn.utils import shuffle
-from sklearn.ensemble import  RandomForestRegressor
 
 # from xgboost import XGBRegressor
 
@@ -156,7 +157,7 @@ def main():
                                   inplace=False)
 
     # Fileter housing data
-    train = genderCleaning(train, False)
+    # train = genderCleaning(train, False)
     #train = HousingSituation(train, False)
     train = processAdditionToSalary(train)
     y = train['Salary']
@@ -202,7 +203,7 @@ def main():
 
     # Split into target and predictor variables
     predict_X = test_dataset
-    predict_X = genderCleaning(predict_X, True)
+    # predict_X = genderCleaning(predict_X, True)
     #predict_X = HousingSituation(predict_X,True)
     predict_X = processAdditionToSalary(predict_X)
     additionSal = predict_X['Yearly Income in addition to Salary (e.g. Rental Income)']
@@ -231,10 +232,14 @@ def main():
     print(pred2)
     # Write to file
     pred2 = pred2 + additionSal
-    test = {"Total Yearly Income [EUR]": pred2}
-    print (test)
-    df_out = pd.DataFrame(test, columns=['Total Yearly Income [EUR]'])
-    df_out.to_csv("tcd-ml-1920-group-income-submission.csv")
+    output = pd.read_csv('tcd-ml-1920-group-income-submission.csv')
+    instance = output['Instance']
+    output.pop('Instance')
+    a = pd.DataFrame.from_dict({
+        'Instance': instance,
+        'Total Yearly Income [EUR]': pred2
+    })
+    a.to_csv("tcd-ml-1920-group-income-submission.csv", index=False)
 
 
 
