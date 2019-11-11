@@ -6,25 +6,25 @@ Bron 2.) Size of city small(<10,000,000) vs large (10,000,000<)
 
 MICHAEL 3.) year has outliers remove any value over 400,000 before the year 1990 / investigate n/a
 
-Bryan 4.) castle and large houses remove values over 400,000 and back popagate 
+Bryan 4.) castle and large houses remove values over 400,000 and back popagate
 
 Bron 5.) degree: add 1 for degree 0 for all else even missing and na
 
-michael 6.) satisfaction: remove column
+michael 6.) satisfaction: remove column -- Done
 
-michael7.) Crime: drop crime column
+michael7.) Crime: drop crime column -Done
 
 Bryan 8.) gender: remove outlier from missing and na then back propagate the values (maybe make f male for the craic)
 
-MICHel 9.) hair: throw out hair color
+MICHel 9.) hair: throw out hair color -Done
 
 MICHAEL 10.) instance: if double of intance value remove duplicate around 400,000 to 500,000
 
 possible features:
-	
+
 Bryan 	lower age is higher crime rate
-	
-	
+
+
 next week:
 
 total salary column
