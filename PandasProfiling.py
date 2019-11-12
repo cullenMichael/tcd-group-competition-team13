@@ -1,3 +1,4 @@
+
 import pandas as pd
 import numpy as np
 import pandas_profiling
@@ -9,10 +10,11 @@ def read_CSV_file(filename):
 def main():
     # Read in the dataset to a pandas dataframe
     dataset=read_CSV_file("tcd-ml-1920-group-income-test.csv")
+    dataset=dataset[['Year of Record','Total Yearly Income [EUR]']]
 
     print("here!")
     # Use pandas profiling to view a gui based plot of the preprocessed data
-    dataset.profile_report(title="initialData",check_recoded = False).to_file("initialData.html")
+    dataset.profile_report(title="initialData",check_recoded = False).to_file("initialDataYearOfRecord.html")
 
 
 
