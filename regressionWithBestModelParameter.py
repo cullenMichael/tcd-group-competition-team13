@@ -25,8 +25,7 @@ import math
 '''
 def changeSizeOfCity(dataset):
     dataset['Small City'] = dataset['Size of City'] < 3000
-    dataset['Small City'] = np.log(dataset['Size of City'])
-    dataset.pop('Size of City')
+    dataset['Size of City'] = np.log(dataset['Size of City'])
     return dataset
 
 
@@ -42,7 +41,7 @@ def work_experience(dataset):
 
 
 '''
-    Strips 'EUR', converts to float and scales around the log
+    Strips 'EUR', converts to float and scales with log
 '''
 def processAdditionToSalary(dataset):
     dataset['Yearly Income in addition to Salary (e.g. Rental Income)'] = dataset['Yearly Income in addition to Salary (e.g. Rental Income)'].map(lambda x: x.rstrip(' EUR'))
@@ -73,7 +72,6 @@ def genderCleaning(dataset):
     #dataset['Gender'] = dataset['Gender'].fillna(method='bfill')
 
     gender_height = dataset.groupby('Gender').median()[['Body Height [cm]']]
-    print(gender_height)
     male= gender_height.loc["male"]["Body Height [cm]"]
     female= gender_height.loc["female"]["Body Height [cm]"]
     for (i, row) in dataset.iterrows():
@@ -100,7 +98,7 @@ def satisfaction(dataset):
     return dataset
 
 '''
-    In testing data, fill the years based on the Housing Situation (High correlation with Year)
+    In test data, fill the years based on the Housing Situation (High correlation with Year)
 '''
 def year(dataset):
     #dataset['Year of Record'] = dataset['Year of Record'].fillna(method='bfill')
@@ -109,7 +107,6 @@ def year(dataset):
 
     for (i, row) in dataset.iterrows():
         if math.isnan(row["Year of Record"]):
-            print("here")
             dataset.set_value(i,"Year of Record", int(housing.loc[row["Housing Situation"]]["Year of Record"]))
     return dataset
 
@@ -124,7 +121,7 @@ def bodyHeight(dataset):
 
 
 '''
-    Backwards Fill Profession and only take the first 5 characters for each row.
+    Backwards Fill Profession and only take the first 5 characters for each profession.
 '''
 def profession(dataset):
     dataset['Profession'] = dataset['Profession'].fillna(method='bfill')
@@ -168,10 +165,12 @@ def main():
 
     #Encode using get dummies
     print ("Start Dummies")
-    train = pd.get_dummies(train, columns=['Gender',
-                                           'Country',
-                                           'University Degree',
-                                           'Profession'], drop_first=True)
+    #train = pd.get_dummies(train, columns=['Gender',
+    #                                       'Country',
+    #                                       'University Degree',
+    #                                       'Profession'], drop_first=True)
+    te = TargetEncoder()
+    train[['Gender','Country', 'Profession', 'University Degree']] = te.fit_transform(train[['Gender','Country', 'Profession', 'University Degree']], y)
     print ("End Dummies")
 
     regressor = CatBoostRegressor(od_type='IncToDec')
@@ -218,11 +217,12 @@ def main():
     predict_X = test_dataset
     X_train = train
     y_train = y
+    predict_y = predict_X.pop('Total Yearly Income [EUR]')
 
     predict_X = year(predict_X)
     predict_X = predict_X.drop(columns=['Instance',
                                 'Hair Color',
-                                'Total Yearly Income [EUR]',
+                                #'Total Yearly Income [EUR]',
                                 'Housing Situation',
                                 'Wears Glasses',
                                 ])
@@ -238,10 +238,10 @@ def main():
     predict_X = satisfaction(predict_X)
     predict_X = crime(predict_X)
 
-    predict_X = pd.get_dummies(predict_X, columns=['Gender', 'Profession',
-                                            'Country',
-                                            'University Degree'], drop_first=True)
-
+    #predict_X = pd.get_dummies(predict_X, columns=['Gender', 'Profession',
+    #                                        'Country',
+    #                                        'University Degree'], drop_first=True)
+    predict_X[['Gender','Country', 'Profession', 'University Degree']] = te.transform(predict_X[['Gender','Country', 'Profession', 'University Degree']], predict_y)
     X_train, predict_X = train.align(predict_X , join='outer', axis=1, fill_value=0)
 
     print ('Fitting Test Data')
