@@ -153,10 +153,11 @@ def main():
                                 'Housing Situation',
                                 'Wears Glasses',
                                 ])
-    train = bodyHeight(train)
+
     train = changeSizeOfCity(train)
     train = degree(train)
     train = genderCleaning(train)
+    train = bodyHeight(train)
     train = profession(train)
     train = satisfaction(train)
     train = work_experience(train)
@@ -227,10 +228,11 @@ def main():
                                 'Wears Glasses',
                                 ])
 
-    predict_X = bodyHeight(predict_X)
+
     predict_X = changeSizeOfCity(predict_X)
     predict_X = degree(predict_X)
     predict_X = genderCleaning(predict_X)
+    predict_X = bodyHeight(predict_X)
     predict_X = profession(predict_X)
     predict_X = work_experience(predict_X)
     predict_X = processAdditionToSalary(predict_X)
