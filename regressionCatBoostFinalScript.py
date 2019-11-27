@@ -166,34 +166,32 @@ def main():
 
     #Encode using get dummies
     print ("Start Dummies")
-    #train = pd.get_dummies(train, columns=['Gender',
-    #                                       'Country',
-    #                                       'University Degree',
-    #                                       'Profession'], drop_first=True)
     te = TargetEncoder()
     train[['Gender','Country', 'Profession', 'University Degree']] = te.fit_transform(train[['Gender','Country', 'Profession', 'University Degree']], y)
     print ("End Dummies")
 
+    #catboost regressor creation
     regressor = CatBoostRegressor(od_type='IncToDec')
 
+    #split data 80/20
     X_train, X_test, y_train, y_test = train_test_split(
         train, y, test_size=0.2)
 
-    X_training, X_val, y_training, y_val = train_test_split(
-        X_train, y_train, test_size=0.2)
+    #create an evalution dataset tostop overfitting
+    eval_dataset = Pool(X_test,
+                        y_test)
 
-    eval_dataset = Pool(X_val,
-                        y_val)
-
+    #grdi search for optimal parameters
     print ('Fitting')
-    parameters = {'depth'         : sp_randInt(3,4),
+    parameters = {'depth'         : sp_randInt(3,14),
                   'learning_rate' : sp_randFloat(),
-                  'iterations'    : sp_randInt(200, 300)
+                  'iterations'    : sp_randInt(800, 1200)
                  }
 
     randm = RandomizedSearchCV(estimator=regressor, param_distributions = parameters,
                                cv = 4, n_iter = 10, n_jobs=5)
     randm.fit(X_train, y_train)
+
     # Results from Random Search
     print("\n========================================================")
     print(" Results from Random Search ")
@@ -205,6 +203,7 @@ def main():
 
     print("\n The best parameters across ALL searched params:\n",randm.best_params_)
 
+    # new catboost model using best parameters
     regressor = CatBoostRegressor(iterations=randm.best_params_['iterations'],
                                   learning_rate=randm.best_params_['learning_rate'],
                                   depth=randm.best_params_['depth'],
@@ -223,12 +222,11 @@ def main():
     predict_X = year(predict_X)
     predict_X = predict_X.drop(columns=['Instance',
                                 'Hair Color',
-                                #'Total Yearly Income [EUR]',
                                 'Housing Situation',
                                 'Wears Glasses',
                                 ])
 
-
+    #clean test data
     predict_X = changeSizeOfCity(predict_X)
     predict_X = degree(predict_X)
     predict_X = genderCleaning(predict_X)
@@ -240,15 +238,14 @@ def main():
     predict_X = satisfaction(predict_X)
     predict_X = crime(predict_X)
 
-    #predict_X = pd.get_dummies(predict_X, columns=['Gender', 'Profession',
-    #                                        'Country',
-    #                                        'University Degree'], drop_first=True)
+
     predict_X[['Gender','Country', 'Profession', 'University Degree']] = te.transform(predict_X[['Gender','Country', 'Profession', 'University Degree']], predict_y)
     X_train, predict_X = train.align(predict_X , join='outer', axis=1, fill_value=0)
 
     print ('Fitting Test Data')
     regressor.fit(X_training, y_training,eval_set=eval_dataset)
 
+    #predict on the trained model
     pred2 = regressor.predict(predict_X)
     output = pd.read_csv('tcd-ml-1920-group-income-submission.csv')
     instance = output['Instance']
