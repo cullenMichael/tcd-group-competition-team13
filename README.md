@@ -1,12 +1,12 @@
 ## tcd-group-competition-team13
-#ML Assignment
+# ML Assignment
 
-#Group 13:
+# Group 13:
 1. B60F41293D4354841FC0AA3B50638DAF1146AB15 - (Bryan Tyrrell)
 2. C21F931B43563D95AB873D45556D6C285F9FE6BC - (Bronagh Carolan)
 3. D0DF33C66A1E7CA124BCF64124DA95499318761F - (Michael Cullen)
 
-#Final position:
+# Final position:
 17th - 9862.38936 MAE
 
 # Models tested:
